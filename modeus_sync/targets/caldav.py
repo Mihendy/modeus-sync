@@ -15,15 +15,28 @@ class CalDavTarget(IncrementalTarget):
         self._objects = {}
 
     @staticmethod
-    def _find_or_create(principal, name):
+    def _find(principal, name):
         for cal in principal.calendars():
-            if (cal.name or "").strip() == name:
+            if (cal.get_display_name() or "").strip() == name:
                 return cal
+        return None
+
+    @classmethod
+    def _find_or_create(cls, principal, name):
+        cal = cls._find(principal, name)
+        if cal is not None:
+            return cal
         try:
-            return principal.make_calendar(name=name)
+            principal.make_calendar(name=name)
         except Exception as exc:
             raise RuntimeError(f"Календарь «{name}» не найден, и создать его не получилось ({exc}). "
                                f"Создай его вручную с таким же именем и запусти снова.")
+        # Яндекс кладёт новый календарь по своему адресу, а не по тому, что вернул make_calendar,
+        # поэтому ищем его заново
+        cal = cls._find(principal, name)
+        if cal is None:
+            raise RuntimeError(f"Календарь «{name}» создан, но сервер его не показывает. Запусти ещё раз.")
+        return cal
 
     def list_events(self, start, end, namespace):
         result = {}
