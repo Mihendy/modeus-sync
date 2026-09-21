@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.har
+.venv/
+*.ics
+sync.log
+.idea/
